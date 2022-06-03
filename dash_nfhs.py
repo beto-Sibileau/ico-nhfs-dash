@@ -1,27 +1,24 @@
 # %%
-from dash import dcc, html
+from dash import Dash, dcc, html
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 from difflib import get_close_matches
 from geojson_rewind import rewind
 import json
-from jupyter_dash import JupyterDash
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
 
 # %%
 # read source data
-folder_path = "./NFHS_data/"
-file_names = [
-    "NFHS345.xlsx",
-    "NFHS45 CoC and Child Nutrition.xlsx",
-    "NFHS- 5 compiled factsheet for INDIA.xlsx",
+file_urls = [
+    "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS345.xlsx",
+    "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS45%20CoC%20and%20Child%20Nutrition.xlsx",
+    "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS-%205%20compiled%20factsheet%20for%20INDIA.xlsx",
 ]
-df_list = [
-    pd.read_excel(folder_path + name, sheet_name=0, dtype=str) for name in file_names
-]
+df_list = [pd.read_excel(url, sheet_name=0, dtype=str) for url in file_urls]
 
 # %%
 # compiled india xls: transform column names
@@ -47,10 +44,10 @@ df_list[2].drop(0, inplace=True)
 
 # %%
 # geojson all
-shape_folder = "./NFHS_data/shapefiles/"
-json_file = "India_707_districts_with_J&K_Adjustment.json"
-json_read = open(shape_folder + json_file)
-geo_json_dict = rewind(json.load(json_read), rfc7946=False)
+json_file_url = "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/shapefiles/India_707_districts_with_J%26K_Adjustment.json"
+response_geo = requests.get(json_file_url)
+json_read = response_geo.json()
+geo_json_dict = rewind(json_read, rfc7946=False)
 
 # %%
 # district naming
@@ -742,10 +739,12 @@ state_trend_row = dbc.Container(
 # %%
 fontawesome_stylesheet = "https://use.fontawesome.com/releases/v5.8.1/css/all.css"
 # Build App
-app = JupyterDash(
+app = Dash(
     __name__, external_stylesheets=[dbc.themes.BOOTSTRAP, fontawesome_stylesheet]
 )
 
+# to deploy using WSGI server
+server = app.server
 # app tittle for web browser
 app.title = "NFHS"
 
@@ -1207,4 +1206,5 @@ def update_trend(state_values, kpi_values):
 
 # %%
 # Run app and print out the application URL
-app.run_server(mode="external")
+if __name__ == "__main__":
+    app.run_server(debug=True)
