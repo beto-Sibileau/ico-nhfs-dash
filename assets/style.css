@@ -1,0 +1,69 @@
+
+*[class="output-uploading-state"][data-dash-is-loading="true"]{
+    visibility: hidden;
+}
+*[class="output-uploading-state"][data-dash-is-loading="true"]::before{
+    content: "Loading...";
+    display: inline-block;
+    color: DarkGreen;
+    visibility: visible;
+}
+
+.DateRangePickerInput__withBorder {
+    border: 0;
+}
+
+.DateInput_input, .DateInput_input_1 {
+    color: inherit !important;
+    text-align: center;
+    font-size: inherit ! important;
+    Height: 25px !important;
+    Width: 100% !important;
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+    cursor: pointer;
+}
+
+.card {
+    text-align: center;
+}
+
+.card .card-title {
+    text-align: left;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+.card .card-value {
+    font-size: 2rem;
+    color: DarkBlue;
+}
+
+.card .card-target {
+    font-size: 1rem;
+    font-weight: lighter;
+}
+
+.card .down {
+    color: red
+}
+
+.card .up {
+    color: green
+}
+
+/* restyle radio items */
+.radio-group .form-check {
+  padding-left: 0;
+}
+
+.radio-group .btn-group > .form-check:not(:last-child) > .btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.radio-group .btn-group > .form-check:not(:first-child) > .btn {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
