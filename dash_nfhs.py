@@ -17,7 +17,7 @@ file_urls = [
     "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS345.xlsx",
     "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS45%20CoC%20and%20Child%20Nutrition.xlsx",
     "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS-%205%20compiled%20factsheet%20for%20INDIA.xlsx",
-    "https://github.com/beto-Sibileau/ico-nhfs-dash/blob/main/NFHS_data/Equity%20Analysis.xlsx",
+    "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/Equity%20Analysis.xlsx",
 ]
 df_list = [
     pd.read_excel(url, sheet_name=0, dtype=str)
