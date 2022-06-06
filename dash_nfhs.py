@@ -17,8 +17,14 @@ file_urls = [
     "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS345.xlsx",
     "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS45%20CoC%20and%20Child%20Nutrition.xlsx",
     "https://github.com/beto-Sibileau/ico-nhfs-dash/raw/main/NFHS_data/NFHS-%205%20compiled%20factsheet%20for%20INDIA.xlsx",
+    "https://github.com/beto-Sibileau/ico-nhfs-dash/blob/main/NFHS_data/Equity%20Analysis.xlsx",
 ]
-df_list = [pd.read_excel(url, sheet_name=0, dtype=str) for url in file_urls]
+df_list = [
+    pd.read_excel(url, sheet_name=0, dtype=str)
+    if "Equity" not in url
+    else pd.read_excel(url, sheet_name=None, dtype=str, header=2)
+    for url in file_urls
+]
 
 # %%
 # compiled india xls: transform column names
@@ -41,6 +47,70 @@ df_list[2]["State"] = "India"
 # drop first row
 df_list[2].drop(0, inplace=True)
 
+# %%
+# equity xls: concat excel sheets per added indicator
+df_list_equity = []
+for name in list(df_list[3].keys())[:6]:
+    df_list[3][name]["Indicator"] = name
+    df_list_equity.append(
+        df_list[3][name]
+        .rename(
+            columns={
+                "Unnamed: 0": "State",
+                "Unnamed: 1": "Total",
+            }
+        )
+        .dropna(subset=["State", "Year"])
+    )
+
+df_equity = (
+    pd.concat(df_list_equity, ignore_index=True)
+    .replace(
+        {
+            "Indicator": {"Protected against neonatTetnus ": "Neonatal Protection"},
+            "Year": {
+                "2015-16": "NFHS-4 (2015-16)",
+                "2019-21": "NFHS-5 (2019-21)",
+                "2019-2021": "NFHS-5 (2019-21)",
+            },
+            "State": {
+                "India": "All India",
+                "Jammu And Kashmir": "Jammu and Kashmir",
+                "Andaman And Nicobar Islands": "Andaman and Nicobar Islands",
+                "Andaman & Nicobar Isl": "Andaman and Nicobar Islands",
+                "Dadra & Nagar Haveli": "Dadra and Nagar Haveli",
+                "Delhi": "Nct of Delhi",
+                "Nct Of Delhi": "Nct of Delhi",
+            },
+        }
+    )
+    .astype(
+        {
+            "Total": "float64",
+            "Rural": "float64",
+            "Urban": "float64",
+            "Poorest": "float64",
+            "Poor": "float64",
+            "Middle": "float64",
+            "Rich": "float64",
+            "Richest": "float64",
+            "No education": "float64",
+            "Primary education": "float64",
+            "Secondary education": "float64",
+            "Higher education": "float64",
+            "SC": "float64",
+            "ST": "float64",
+            "OBC": "float64",
+            "Others": "float64",
+            "Hindu": "float64",
+            "Muslim": "float64",
+            "Other": "float64",
+        }
+    )
+)
+
+# names to display in dropdown equity
+states_4_equity = df_equity.State.unique()
 
 # %%
 # geojson all
@@ -183,7 +253,9 @@ label_no_fig = {
 
 # %%
 # all india or states list
-india_or_state_options = [{"label": l, "value": l} for l in ["All India", *data_states]]
+india_or_state_options = [
+    {"label": l, "value": l} for l in sorted(["All India", *data_states], key=str.lower)
+]
 
 # dbc select: KPI district map --> All India or States
 dd_india_or_state = dbc.Select(
@@ -196,7 +268,9 @@ dd_india_or_state = dbc.Select(
 # %%
 # district map indicators list
 district_kpi_map = df_list[1].columns[4:].values
-district_map_options = [{"label": l, "value": l} for l in district_kpi_map]
+district_map_options = [
+    {"label": l, "value": l} for l in sorted(district_kpi_map, key=str.lower)
+]
 
 # dbc select: KPI district map
 dd_kpi_map_district = dbc.Select(
@@ -205,6 +279,24 @@ dd_kpi_map_district = dbc.Select(
     options=district_map_options,
     value=district_kpi_map[0],
 )
+
+# %%
+# hard code indicator list color: inverse
+kpi_color_inverse = [
+    "Women age 20-24 years married before age 18 years (%)",
+    "Total unmet need (%)",
+    "Unmet need for spacing(%)",
+    "Births delivered by caesarean section (%)",
+    "Births in a private health facility that were delivered by caesarean section %)",
+    "Births in a public health facility that were delivered by caesarean section (%)",
+    "Children under 5 years who are stunted (height-for-age) (%)",
+    "Children under 5 years who are wasted (weight-for-height) (%)",
+    "Children under 5 years who are underweight (weight-for-age) (%)",
+    "Children under 5 years who are overweight (weight-for-height) (%)",
+    "Children age 6-59 months who are anaemic (<11.0 g/dl) (%)",
+    "All women age 15-49 years who are anaemic (%)",
+    "All women age 15-19 years who are anaemic (%) ",
+]
 
 # %%
 # # NFHS round
@@ -390,39 +482,8 @@ for state in data_states:
 district_geo_dict["All India"] = state_district_geo_df
 
 # %%
-# district indicators list scatter
-district_kpi_map = df_list[1].columns[4:].values
-district_map_options = [{"label": l, "value": l} for l in district_kpi_map]
-
-# dbc select: KPI district map
-dd_kpi_map_district = dbc.Select(
-    id="kpi-district-map-dd",
-    size="sm",
-    options=district_map_options,
-    value=district_kpi_map[0],
-)
-
-# %%
-# hard code indicator list color: inverse
-kpi_color_inverse = [
-    "Women age 20-24 years married before age 18 years (%)",
-    "Total unmet need (%)",
-    "Unmet need for spacing(%)",
-    "Births delivered by caesarean section (%)",
-    "Births in a private health facility that were delivered by caesarean section %)",
-    "Births in a public health facility that were delivered by caesarean section (%)",
-    "Children under 5 years who are stunted (height-for-age) (%)",
-    "Children under 5 years who are wasted (weight-for-height) (%)",
-    "Children under 5 years who are underweight (weight-for-age) (%)",
-    "Children under 5 years who are overweight (weight-for-height) (%)",
-    "Children age 6-59 months who are anaemic (<11.0 g/dl) (%)",
-    "All women age 15-49 years who are anaemic (%)",
-    "All women age 15-19 years who are anaemic (%) ",
-]
-
-# %%
 # states list
-state_options = [{"label": l, "value": l} for l in data_states]
+state_options = [{"label": l, "value": l} for l in sorted(data_states, key=str.lower)]
 # dcc dropdown: states --> dcc allows multi, styling not as dbc
 dd_states = dcc.Dropdown(
     id="my-states-dd",
@@ -445,25 +506,6 @@ dd_district_list_2 = dbc.Select(
     size="sm",
     options=district_map_options,
     value=district_kpi_map[14],
-)
-
-# dbc ButtonGroup with RadioItems
-button_group_nfhs = html.Div(
-    [
-        dbc.RadioItems(
-            id="radios-nfhs",
-            className="btn-group",
-            inputClassName="btn-check",
-            labelClassName="btn btn-outline-info",
-            labelCheckedClassName="active",
-            options=[
-                {"label": "NFHS-4", "value": "NFHS-4"},
-                {"label": "NFHS-5", "value": "NFHS-5"},
-            ],
-            value="NFHS-5",
-        ),
-    ],
-    className="radio-group",
 )
 
 # %%
@@ -578,6 +620,7 @@ df_nfhs_345 = (
     .query("Gender.isnull()", engine="python")
     .reset_index(drop=True)
     .replace({"State": {"INDIA": "India"}})
+    .replace({"State": {"India": "All India"}})
 )
 
 # retain Indicator Types - Indicator combinations
@@ -586,7 +629,7 @@ nfhs_345_ind_df = df_nfhs_345.groupby(
 ).size()
 
 # states or india: nfhs_345 list
-nfhs_345_states = df_nfhs_345.State.unique()
+nfhs_345_states = sorted(df_nfhs_345.State.unique(), key=str.lower)
 
 # %%
 # filter uncleaned data in numerical columns
@@ -632,16 +675,18 @@ ini_ind_type = "Population and Household Profile"
 dd_indicator_type = dcc.Dropdown(
     id="indicator-type-dd",
     options=[
-        {"label": l, "value": l} for l in nfhs_345_ind_df["Indicator Type"].unique()
+        {"label": l, "value": l}
+        for l in sorted(nfhs_345_ind_df["Indicator Type"].unique(), key=str.lower)
     ],
     value=ini_ind_type,
     multi=True,
 )
 
 # dcc dropdown: nfhs 345 indicators --> dcc allows multi, styling not as dbc
-ini_indicators_345 = nfhs_345_ind_df.query(
-    "`Indicator Type` == @ini_ind_type"
-).Indicator.values
+ini_indicators_345 = sorted(
+    nfhs_345_ind_df.query("`Indicator Type` == @ini_ind_type").Indicator.values,
+    key=str.lower,
+)
 dd_indicator_345 = dcc.Dropdown(
     id="indicator-345-dd",
     options=[{"label": l, "value": l} for l in ini_indicators_345],
@@ -727,6 +772,119 @@ state_trend_row = dbc.Container(
             [
                 dbc.Col(
                     dcc.Graph(id="state-trend-plot", figure=label_no_fig), width=12
+                ),
+            ],
+            justify="evenly",
+            align="center",
+        ),
+    ],
+    fluid=True,
+)
+
+# %%
+# dbc select: all india or states for equity
+union_territories = [
+    "Andaman and Nicobar Islands",
+    "Dadra and Nagar Haveli",
+    "Daman and Diu",
+    "Chandigarh",
+    "Lakshadweep",
+    "Puducherry",
+    "Ladakh",
+]
+
+dd_states_equity = dbc.Select(
+    id="dd-states-equity",
+    options=[
+        {"label": l, "value": l}
+        for l in sorted(states_4_equity, key=str.lower)
+        if l not in union_territories
+    ],
+    value="All India",
+)
+
+# %%
+# dbc ButtonGroup with RadioItems
+button_group_disagg = html.Div(
+    [
+        dbc.RadioItems(
+            id="radios-disagg",
+            className="btn-group",
+            inputClassName="btn-check",
+            labelClassName="btn btn-outline-info",
+            labelCheckedClassName="active",
+            options=[
+                {"label": "Residence", "value": "Residence"},
+                {"label": "Wealth", "value": "Wealth"},
+                {"label": "Women's Education", "value": "Women's Education"},
+                {"label": "Caste", "value": "Caste"},
+                {"label": "Religion", "value": "Religion"},
+            ],
+            value="Residence",
+        ),
+    ],
+    className="radio-group",
+)
+
+# %%
+# dbc states equity bar row
+state_equity_row = dbc.Container(
+    [
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.P(
+                                "Select All India or State",
+                                style={
+                                    "fontWeight": "bold",  # 'normal', #
+                                    "textAlign": "left",  # 'center', #
+                                    # 'paddingTop': '25px',
+                                    "color": "DeepSkyBlue",
+                                    "fontSize": "16px",
+                                    "marginBottom": "10px",
+                                },
+                            ),
+                            dd_states_equity,
+                        ]
+                    ),
+                    width="auto",
+                ),
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.P(
+                                "Select Disaggregation",
+                                style={
+                                    "fontWeight": "bold",  # 'normal', #
+                                    "textAlign": "left",  # 'center', #
+                                    # 'paddingTop': '25px',
+                                    "color": "DeepSkyBlue",
+                                    "fontSize": "16px",
+                                    "marginBottom": "10px",
+                                },
+                            ),
+                            button_group_disagg,
+                        ]
+                    ),
+                    width="auto",
+                ),
+            ],
+            justify="evenly",
+            align="center",
+            style={
+                # 'paddingLeft': '25px',
+                "marginBottom": "30px",
+            },
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dcc.Graph(id="state-equity-plot", figure=label_no_fig), width=6
+                ),
+                dbc.Col(
+                    dcc.Graph(id="state-equity-plot-2", figure=label_no_fig), width=6
                 ),
             ],
             justify="evenly",
@@ -833,9 +991,24 @@ app.layout = html.Div(
                 "margin-bottom": "0",
             }
         ),
-        # div scatter row (no loading added)
+        # div trend row (no loading added)
         html.Div(
             [state_trend_row],
+            style={
+                "paddingTop": "20px",
+            },
+        ),
+        html.Hr(
+            style={
+                "color": "DeepSkyBlue",
+                "height": "3px",
+                "margin-top": "30px",
+                "margin-bottom": "0",
+            }
+        ),
+        # div equity row (no loading added)
+        html.Div(
+            [state_equity_row],
             style={
                 "paddingTop": "20px",
             },
@@ -1153,9 +1326,10 @@ def update_indicator_options(indicator_type):
         return []
 
     # dcc dropdown: nfhs 345 indicators --> dcc allows multi, styling not as dbc
-    indicators_345 = nfhs_345_ind_df.query(
-        "`Indicator Type` in @indicator_type"
-    ).Indicator.values
+    indicators_345 = sorted(
+        nfhs_345_ind_df.query("`Indicator Type` in @indicator_type").Indicator.values,
+        key=str.lower,
+    )
     return [{"label": l, "value": l} for l in indicators_345]
 
 
@@ -1202,7 +1376,65 @@ def update_trend(state_values, kpi_values):
         trend_fig.update_layout(legend=dict(font=dict(size=8), y=0.5, x=1.1))
 
         return trend_fig
+        
+# %%
+@app.callback(
+    Output("state-equity-plot", "figure"),
+    Output("state-equity-plot-2", "figure"),
+    Input("dd-states-equity", "value"),
+    Input("radios-disagg", "value"),
+)
+def update_equity(state_value, disagg_value):
 
+    if disagg_value == "Residence":
+        col_map = ["Total", "Rural", "Urban"]
+    elif disagg_value == "Wealth":
+        col_map = ["Poorest", "Poor", "Middle", "Rich", "Richest"]
+    elif disagg_value == "Women's Education":
+        col_map = [
+            "No education",
+            "Primary education",
+            "Secondary education",
+            "Higher education",
+        ]
+    elif disagg_value == "Caste":
+        col_map = ["SC", "ST", "OBC", "Others"]
+    else:
+        col_map = ["Hindu", "Muslim", "Other"]
+
+    display_df = df_equity.query(
+        "State == @state_value & Year == 'NFHS-4 (2015-16)'"
+    ).melt(
+        id_vars=["Indicator", "State"],
+        value_vars=col_map,
+    )
+
+    display_df_2 = df_equity.query(
+        "State == @state_value & Year == 'NFHS-5 (2019-21)'"
+    ).melt(
+        id_vars=["Indicator", "State"],
+        value_vars=col_map,
+    )
+
+    fig = px.bar(
+        display_df,
+        x="Indicator",
+        y="value",
+        color="variable",
+        barmode="group",
+        title="NFHS-4 (2015-16)",
+    ).update_yaxes(range=[0, 100])
+
+    fig_2 = px.bar(
+        display_df_2,
+        x="Indicator",
+        y="value",
+        color="variable",
+        barmode="group",
+        title="NFHS-5 (2019-21)",
+    ).update_yaxes(range=[0, 100])
+
+    return fig, fig_2
 
 # %%
 # Run app and print out the application URL
