@@ -1246,12 +1246,6 @@ def update_scatter(state_values, kpi_1, kpi_2):
         scatter_fig.add_hline(
             y=y_avg, line_dash="dash", line_width=3, line_color="green"
         ).update_traces(line_width=3)
-        r_sq = round(
-            px.get_trendline_results(scatter_fig).px_fit_results.iloc[0].rsquared, 2
-        )
-        scatter_fig.data[
-            -1
-        ].hovertemplate = f"<b>OLS trendline</b><br>R<sup>2</sup>={r_sq}"
 
         scatter_fig_2 = (
             px.scatter(
@@ -1277,12 +1271,6 @@ def update_scatter(state_values, kpi_1, kpi_2):
         scatter_fig_2.add_hline(
             y=y_avg_2, line_dash="dash", line_width=3, line_color="green"
         ).update_traces(line_width=3)
-        r_sq_2 = round(
-            px.get_trendline_results(scatter_fig_2).px_fit_results.iloc[0].rsquared, 2
-        )
-        scatter_fig_2.data[
-            -1
-        ].hovertemplate = f"<b>OLS trendline</b><br>R<sup>2</sup>={r_sq_2}"
 
         # adjust scales for comparisson
         x_min = display_df[kpi_1].min()
@@ -1310,6 +1298,43 @@ def update_scatter(state_values, kpi_1, kpi_2):
         scatter_fig_2.update_xaxes(range=[full_range[0][0], full_range[1][0]])
         scatter_fig_2.update_yaxes(range=[full_range[0][1], full_range[1][1]])
 
+    # check for missing reported indicators for NFHS rounds
+    plot_1_flag = display_df.dropna(axis=1, how="all").shape[1] < display_df.shape[1]
+    plot_2_flag = (
+        display_df_2.dropna(axis=1, how="all").shape[1] < display_df_2.shape[1]
+    )
+
+    if plot_1_flag & plot_2_flag:
+        return label_no_fig, label_no_fig
+    elif plot_1_flag:
+        r_sq_2 = round(
+            px.get_trendline_results(scatter_fig_2).px_fit_results.iloc[0].rsquared, 2
+        )
+        scatter_fig_2.data[
+            -1
+        ].hovertemplate = f"<b>OLS trendline</b><br>R<sup>2</sup>={r_sq_2}"
+        return label_no_fig, scatter_fig_2
+    elif plot_2_flag:
+        r_sq = round(
+            px.get_trendline_results(scatter_fig).px_fit_results.iloc[0].rsquared, 2
+        )
+        scatter_fig.data[
+            -1
+        ].hovertemplate = f"<b>OLS trendline</b><br>R<sup>2</sup>={r_sq}"
+        return scatter_fig, label_no_fig
+    else:
+        r_sq = round(
+            px.get_trendline_results(scatter_fig).px_fit_results.iloc[0].rsquared, 2
+        )
+        scatter_fig.data[
+            -1
+        ].hovertemplate = f"<b>OLS trendline</b><br>R<sup>2</sup>={r_sq}"
+        r_sq_2 = round(
+            px.get_trendline_results(scatter_fig_2).px_fit_results.iloc[0].rsquared, 2
+        )
+        scatter_fig_2.data[
+            -1
+        ].hovertemplate = f"<b>OLS trendline</b><br>R<sup>2</sup>={r_sq_2}"
         return scatter_fig, scatter_fig_2
 
 
