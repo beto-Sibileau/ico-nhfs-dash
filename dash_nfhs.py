@@ -253,11 +253,13 @@ label_no_fig = {
 
 # %%
 # all india or states list
+# restricted to States only (All India requires more resources to deploy)
 india_or_state_options = [
-    {"label": l, "value": l} for l in sorted(["All India", *data_states], key=str.lower)
+    {"label": l, "value": l} for l in sorted(data_states, key=str.lower)
 ]
 
 # dbc select: KPI district map --> All India or States
+# restricted to States only (All India requires more resources to deploy)
 dd_india_or_state = dbc.Select(
     id="india-or-state-dd",
     size="sm",
@@ -320,7 +322,7 @@ district_map_row = dbc.Container(
                     html.Div(
                         [
                             html.P(
-                                "Select All India or State",
+                                "Select a State",
                                 style={
                                     "fontWeight": "bold",  # 'normal', #
                                     "textAlign": "left",  # 'center', #
